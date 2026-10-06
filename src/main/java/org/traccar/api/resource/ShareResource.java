@@ -94,6 +94,8 @@ public class ShareResource extends BaseResource {
             share.setId(storage.addObject(share, new Request(new Columns.Exclude("id"))));
 
             storage.addPermission(new Permission(User.class, share.getId(), clazz, id));
+        } else {
+            throw new WebApplicationException(Response.Status.CONFLICT);
         }
 
         return tokenManager.generateToken(share.getId(), expiration);
