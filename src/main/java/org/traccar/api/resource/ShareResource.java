@@ -94,6 +94,9 @@ public class ShareResource extends BaseResource {
             share.setId(storage.addObject(share, new Request(new Columns.Exclude("id"))));
 
             storage.addPermission(new Permission(User.class, share.getId(), clazz, id));
+        } else if (share.getExpirationTime() != null
+                && (expiration == null || share.getExpirationTime().before(expiration))) {
+            throw new IllegalArgumentException("Already shared until " + share.getExpirationTime().toInstant());
         }
 
         return tokenManager.generateToken(share.getId(), expiration);
