@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 - 2020 Anton Tananaev (anton@traccar.org)
+ * Copyright 2018 - 2026 Anton Tananaev (anton@traccar.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -127,7 +127,7 @@ public class EgtsProtocolDecoder extends BaseProtocolDecoder {
         List<Position> positions = new LinkedList<>();
 
         short headerLength = buf.getUnsignedByte(buf.readerIndex() + 3);
-        int index = buf.getUnsignedShort(buf.readerIndex() + 5 + 2);
+        int index = buf.getUnsignedShortLE(buf.readerIndex() + 5 + 2);
         short packetType = buf.getUnsignedByte(buf.readerIndex() + 5 + 2 + 2);
         buf.skipBytes(headerLength);
 
@@ -232,7 +232,8 @@ public class EgtsProtocolDecoder extends BaseProtocolDecoder {
                     position.set(Position.KEY_EVENT, buf.readUnsignedByte());
 
                     if (BitUtil.check(flags, 7)) {
-                        position.setAltitude(buf.readMediumLE());
+                        int altitude = buf.readUnsignedMediumLE();
+                        position.setAltitude(BitUtil.check(speed, 14) ? -altitude : altitude);
                     }
 
                 } else if (type == MSG_EXT_POS_DATA) {
@@ -240,13 +241,13 @@ public class EgtsProtocolDecoder extends BaseProtocolDecoder {
                     int flags = buf.readUnsignedByte();
 
                     if (BitUtil.check(flags, 0)) {
-                        position.set(Position.KEY_VDOP, buf.readUnsignedShortLE());
+                        position.set(Position.KEY_VDOP, buf.readUnsignedShortLE() / 100.0);
                     }
                     if (BitUtil.check(flags, 1)) {
-                        position.set(Position.KEY_HDOP, buf.readUnsignedShortLE());
+                        position.set(Position.KEY_HDOP, buf.readUnsignedShortLE() / 100.0);
                     }
                     if (BitUtil.check(flags, 2)) {
-                        position.set(Position.KEY_PDOP, buf.readUnsignedShortLE());
+                        position.set(Position.KEY_PDOP, buf.readUnsignedShortLE() / 100.0);
                     }
                     if (BitUtil.check(flags, 3)) {
                         position.set(Position.KEY_SATELLITES, buf.readUnsignedByte());
