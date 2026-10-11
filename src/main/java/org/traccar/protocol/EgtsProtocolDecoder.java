@@ -158,11 +158,9 @@ public class EgtsProtocolDecoder extends BaseProtocolDecoder {
 
             int recordEnd = buf.readerIndex() + length;
 
+            List<Position> recordPositions = new LinkedList<>();
             Position position = new Position(getProtocolName());
             DeviceSession deviceSession = getDeviceSession(channel, remoteAddress);
-            if (deviceSession != null) {
-                position.setDeviceId(deviceSession.getDeviceId());
-            }
 
             ByteBuf response = Unpooled.buffer();
             response.writeShortLE(recordIndex);
@@ -210,6 +208,10 @@ public class EgtsProtocolDecoder extends BaseProtocolDecoder {
 
                 } else if (type == MSG_POS_DATA) {
 
+                    if (position.getFixTime() != null) {
+                        position = new Position(getProtocolName());
+                    }
+
                     position.setTime(new Date((buf.readUnsignedIntLE() + 1262304000) * 1000)); // since 2010-01-01
                     position.setLatitude(buf.readUnsignedIntLE() * 90.0 / 0xFFFFFFFFL);
                     position.setLongitude(buf.readUnsignedIntLE() * 180.0 / 0xFFFFFFFFL);
@@ -234,6 +236,10 @@ public class EgtsProtocolDecoder extends BaseProtocolDecoder {
                     if (BitUtil.check(flags, 7)) {
                         int altitude = buf.readUnsignedMediumLE();
                         position.setAltitude(BitUtil.check(speed, 14) ? -altitude : altitude);
+                    }
+
+                    if (serviceType == SERVICE_TELEDATA) {
+                        recordPositions.add(position);
                     }
 
                 } else if (type == MSG_EXT_POS_DATA) {
@@ -290,15 +296,15 @@ public class EgtsProtocolDecoder extends BaseProtocolDecoder {
                 buf.readerIndex(end);
             }
 
-            if (serviceType == SERVICE_TELEDATA && position.getValid()) {
+            if (!recordPositions.isEmpty()) {
                 if (useObjectIdAsDeviceId && objectId != 0L) {
                     deviceSession = getDeviceSession(channel, remoteAddress, String.valueOf(objectId));
-                    if (deviceSession != null) {
-                        position.setDeviceId(deviceSession.getDeviceId());
-                    }
                 }
                 if (deviceSession != null) {
-                    positions.add(position);
+                    for (Position recordPosition : recordPositions) {
+                        recordPosition.setDeviceId(deviceSession.getDeviceId());
+                    }
+                    positions.addAll(recordPositions);
                 }
             }
         }
