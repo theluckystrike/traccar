@@ -285,13 +285,19 @@ public class EgtsProtocolDecoder extends BaseProtocolDecoder {
                 } else if (type == MSG_LIQUID_LEVEL_SENSOR) {
 
                     int flags = buf.readUnsignedByte();
+                    int sensorIndex = BitUtil.to(flags, 3);
 
                     buf.readUnsignedShortLE(); // address
 
                     if (BitUtil.check(flags, 3)) {
-                        position.set("liquidRaw", ByteBufUtil.hexDump(buf.readSlice(end - buf.readerIndex())));
+                        String value = ByteBufUtil.hexDump(buf.readSlice(end - buf.readerIndex()));
+                        position.set("liquid" + sensorIndex + "Raw", value);
                     } else {
-                        position.set("liquid", buf.readUnsignedIntLE());
+                        if (BitUtil.between(flags, 4, 6) == 2) {
+                            position.set("liquid" + sensorIndex, buf.readUnsignedIntLE() / 10.0);
+                        } else {
+                            position.set("liquid" + sensorIndex, buf.readUnsignedIntLE());
+                        }
                     }
 
                 }
