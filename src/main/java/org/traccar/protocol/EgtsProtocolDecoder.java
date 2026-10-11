@@ -160,6 +160,7 @@ public class EgtsProtocolDecoder extends BaseProtocolDecoder {
 
             List<Position> recordPositions = new LinkedList<>();
             Position position = new Position(getProtocolName());
+            int adcOffset = 0;
             DeviceSession deviceSession = getDeviceSession(channel, remoteAddress);
 
             ByteBuf response = Unpooled.buffer();
@@ -210,6 +211,7 @@ public class EgtsProtocolDecoder extends BaseProtocolDecoder {
 
                     if (position.getFixTime() != null) {
                         position = new Position(getProtocolName());
+                        adcOffset = 0;
                     }
 
                     position.setTime(new Date((buf.readUnsignedIntLE() + 1262304000) * 1000)); // since 2010-01-01
@@ -275,9 +277,10 @@ public class EgtsProtocolDecoder extends BaseProtocolDecoder {
 
                     for (int i = 0; i < 8; i++) {
                         if (BitUtil.check(adcMask, i)) {
-                            position.set(Position.PREFIX_ADC + (i + 1), buf.readUnsignedMediumLE());
+                            position.set(Position.PREFIX_ADC + (adcOffset + i + 1), buf.readUnsignedMediumLE());
                         }
                     }
+                    adcOffset += 8;
 
                 } else if (type == MSG_LIQUID_LEVEL_SENSOR) {
 
